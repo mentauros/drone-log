@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドローン飛行日誌 プロトタイプ (地図付き)</title>
+    <title>ドローン飛行日誌＆日常点検 プロトタイプ</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; }
-        /* 地図の大きさを指定 */
         .map-container { height: 200px; width: 100%; display: none; }
     </style>
 </head>
@@ -18,96 +17,152 @@
 
     <header class="bg-blue-600 text-white shadow-md p-4 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">🛸 ドローン飛行日誌 (Map)</h1>
-            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.2</span>
+            <h1 class="text-xl font-bold">🛸 ドローン日誌 & 点検</h1>
+            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.3</span>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto px-4 mt-6">
-        <form id="flightLogForm" class="space-y-6 bg-white p-6 rounded-xl shadow-sm">
+    <main class="max-w-md mx-auto px-4 mt-6 space-y-6">
+        <form id="combinedLogForm" class="space-y-6 bg-white p-6 rounded-xl shadow-sm">
             
-            <h2 class="text-lg font-bold border-b pb-2 text-blue-600">飛行記録の入力</h2>
-
-            <div>
-                <label class="block text-sm font-semibold mb-1">飛行日</label>
-                <input type="date" id="flightDate" class="w-full border rounded-lg p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold mb-1">パイロット名</label>
-                <input type="text" id="pilotName" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-
-            <hr class="border-gray-200 my-4">
-
-            <div class="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-4">
-                <h3 class="font-bold text-sm text-blue-700">🛫 離陸（テイクオフ）</h3>
-                
-                <div>
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">離陸場所</label>
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="takeoffLocation" placeholder="位置情報（自動入力されます）" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none" readonly>
-                        <button type="button" onclick="initMapWithGPS('takeoff')" class="bg-blue-500 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-blue-600 active:scale-95 transition">
-                            📍 現在地
-                        </button>
-                    </div>
-                    <div id="takeoffMap" class="map-container rounded-lg border border-gray-300 shadow-inner mt-2"></div>
-                </div>
+            <div class="border-2 border-amber-200 rounded-xl p-4 bg-amber-50/30 space-y-4">
+                <h2 class="text-lg font-bold text-amber-700 border-b border-amber-200 pb-2 flex items-center gap-2">
+                    🛠️ 日常点検記録
+                </h2>
 
                 <div>
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">離陸時刻</label>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">点検日時</label>
                     <div class="flex gap-2">
-                        <input type="time" id="takeoffTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
-                        <button type="button" onclick="setCurrentTime('takeoffTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
+                        <input type="datetime-local" id="inspectionDateTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
+                        <button type="button" onclick="setCurrentDateTime('inspectionDateTime')" class="bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-amber-700 active:scale-95 transition">
                             🕒 今
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-green-50/50 p-4 rounded-lg border border-green-100 space-y-4">
-                <h3 class="font-bold text-sm text-green-700">🛬 着陸（ランディング）</h3>
-                
                 <div>
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">着陸場所</label>
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="landingLocation" placeholder="位置情報（自動入力されます）" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none" readonly>
-                        <button type="button" onclick="initMapWithGPS('landing')" class="bg-green-500 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-green-600 active:scale-95 transition">
-                            📍 現在地
-                        </button>
-                    </div>
-                    <div id="landingMap" class="map-container rounded-lg border border-gray-300 shadow-inner mt-2"></div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">機体番号／名称</label>
+                    <select id="droneId" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="">-- 機体を選択してください --</option>
+                        <option value="機体A (登録番号: 1号機)">機体A (1号機)</option>
+                        <option value="機体B (登録番号: 2号機)">機体B (2号機)</option>
+                        <option value="機体C (登録番号: 3号機)">機体C (3号機)</option>
+                    </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">着陸時刻</label>
-                    <div class="flex gap-2">
-                        <input type="time" id="landingTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
-                        <button type="button" onclick="setCurrentTime('landingTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
-                            🕒 今
-                        </button>
+                    <label class="block text-xs font-semibold mb-2 text-gray-600">点検項目（問題なければチェック）</label>
+                    <div class="bg-white border rounded-lg p-3 space-y-2.5">
+                        <label class="flex items-center gap-3 text-sm cursor-pointer">
+                            <input type="checkbox" id="checkPropeller" class="w-4 height-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span>プロペラ（異常・ひび割れなし）</span>
+                        </label>
+                        <label class="flex items-center gap-3 text-sm cursor-pointer">
+                            <input type="checkbox" id="checkBattery" class="w-4 height-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span>バッテリー（十分な残量・膨張なし）</span>
+                        </label>
+                        <label class="flex items-center gap-3 text-sm cursor-pointer">
+                            <input type="checkbox" id="checkSignal" class="w-4 height-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span>通信・電波状況（良好）</span>
+                        </label>
+                        <label class="flex items-center gap-3 text-sm cursor-pointer">
+                            <input type="checkbox" id="checkGps" class="w-4 height-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span>GPS受信状態（衛星捕捉数OK）</span>
+                        </label>
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">点検実施者</label>
+                    <input type="text" id="inspectorName" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
                 </div>
             </div>
 
-            <button type="button" onclick="alert('バッチリ地図連動まで確認できました！データ保存や計算機能は、次のステップで作り込んでいきましょう！')" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-[0.98] transition mt-4">
-                飛行記録を保存する（未実装）
+
+            <div class="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/10 space-y-4">
+                <h2 class="text-lg font-bold text-blue-600 border-b border-blue-200 pb-2 flex items-center gap-2">
+                    🛫 飛行飛行日誌
+                </h2>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">飛行目的／ルート</label>
+                    <input type="text" id="flightPurpose" placeholder="例：〇〇圃場の空撮・境界確認" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-3">
+                    <h3 class="font-bold text-xs text-blue-700">🛫 離陸（テイクオフ）</h3>
+                    <div>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="takeoffLocation" placeholder="離陸場所（位置情報）" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
+                            <button type="button" onclick="initMapWithGPS('takeoff')" class="bg-blue-500 text-white text-xs px-2.5 py-2 rounded-lg font-bold hover:bg-blue-600 active:scale-95 transition">
+                                📍 現在地
+                            </button>
+                        </div>
+                        <div id="takeoffMap" class="map-container rounded-lg border border-gray-300 shadow-inner mt-1"></div>
+                    </div>
+                    <div>
+                        <div class="flex gap-2">
+                            <input type="time" id="takeoffTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
+                            <button type="button" onclick="setCurrentTime('takeoffTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
+                                🕒 今
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-50/50 p-3 rounded-lg border border-green-100 space-y-3">
+                    <h3 class="font-bold text-xs text-green-700">🛬 着陸（ランディング）</h3>
+                    <div>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="landingLocation" placeholder="着陸場所（位置情報）" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
+                            <button type="button" onclick="initMapWithGPS('landing')" class="bg-green-500 text-white text-xs px-2.5 py-2 rounded-lg font-bold hover:bg-green-600 active:scale-95 transition">
+                                📍 現在地
+                            </button>
+                        </div>
+                        <div id="landingMap" class="map-container rounded-lg border border-gray-300 shadow-inner mt-1"></div>
+                    </div>
+                    <div>
+                        <div class="flex gap-2">
+                            <input type="time" id="landingTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
+                            <button type="button" onclick="setCurrentTime('landingTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
+                                🕒 今
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">備考・特記事項</label>
+                    <textarea id="remarks" rows="2" placeholder="気象状況や飛行中の特記事項など" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+
+            <button type="button" onclick="alert('日常点検と飛行日誌の合体成功です！次のステップで、このデータをスマホに一時保存したり、スプレッドシートに送信する仕組みを作ります！')" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-[0.98] transition mt-4">
+                点検と飛行日誌を保存する（未実装）
             </button>
 
         </form>
     </main>
 
     <script>
-        // 各種地図データを管理する変数
         const maps = { takeoff: null, landing: null };
         const markers = { takeoff: null, landing: null };
 
-        // ページ読み込み時に今日の日付をセット
+        // ページ読み込み時に今日の日付・時間を初期セット
         window.onload = function() {
-            document.getElementById('flightDate').value = new Date().toISOString().split('T')[0];
+            setCurrentDateTime('inspectionDateTime');
         };
 
-        // 現在時刻をセットする関数
+        // 日時(年月日時分)をセットする関数
+        function setCurrentDateTime(elementId) {
+            const now = new Date();
+            // タイムゾーンを日本時間に合わせる
+            const offset = now.getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+            document.getElementById(elementId).value = localISOTime;
+        }
+
+        // 時刻(時分)をセットする関数
         function setCurrentTime(elementId) {
             const now = new Date();
             document.getElementById(elementId).value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -130,49 +185,38 @@
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     
-                    // 位置情報をテキスト欄に反映
                     updateLocationText(type, lat, lng);
-                    
-                    // 地図エリアを表示する
                     mapContainer.style.display = "block";
                     
-                    // すでに地図が作られている場合は、位置だけ移動させる
                     if (maps[type]) {
                         maps[type].setView([lat, lng], 17);
                         markers[type].setLatLng([lat, lng]);
-                        maps[type].invalidateSize(); // 画面崩れ防止の魔法の言葉
+                        maps[type].invalidateSize();
                         return;
                     }
 
-                    // --- 🗺️ 新しく地図を作成する処理 ---
-                    // 1. 指定した緯度経度を中心に地図を生成（ズームレベル17）
                     maps[type] = L.map(`${type}Map`).setView([lat, lng], 17);
-
-                    // 2. 地図の見た目（デザイン）をセット：OpenStreetMapを使用
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '&copy; OpenStreetMap contributors'
                     }).addTo(maps[type]);
 
-                    // 3. 移動可能な「ピン（マーカー）」を地図上に立てる
                     markers[type] = L.marker([lat, lng], { draggable: true }).addTo(maps[type]);
 
-                    // 4. ✨ 【超重要】ピンがドラッグ（移動）されたら、数値を自動更新する
+                    // ピンがドラッグ（移動）されたら、数値を自動更新する
                     markers[type].on('dragend', function(e) {
                         const changedPos = e.target.getLatLng();
                         updateLocationText(type, changedPos.lat, changedPos.lng);
                     });
 
-                    // 地図の表示崩れを防ぐためのリサイズ処理
                     setTimeout(() => { maps[type].invalidateSize(); }, 200);
                 },
                 function(error) {
-                    alert("位置情報の取得に失敗しました。許可設定を確認してください。");
+                    alert("位置情報の取得に失敗しました。公開サーバー(GitHub)から開いているか確認してください。");
                     inputField.value = "";
                 }
             );
         }
 
-        // 緯度・経度の数値を綺麗に整形してテキスト入力欄に書き込む関数
         function updateLocationText(type, lat, lng) {
             document.getElementById(`${type}Location`).value = `北緯:${lat.toFixed(6)}, 東経:${lng.toFixed(6)}`;
         }
