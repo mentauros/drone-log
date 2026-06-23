@@ -18,7 +18,7 @@
     <header class="bg-blue-600 text-white shadow-md p-4 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">🛸 ドローン日誌 & 点検</h1>
-            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.4</span>
+            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.5</span>
         </div>
     </header>
 
@@ -42,7 +42,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold mb-1 text-gray-600">機体番号／名称</label>
-                    <select id="droneId" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
+                    <select id="droneId" onchange="updateCalculatedDisplays()" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
                         <option value="">-- 機体を選択してください --</option>
                         <option value="機体A (1号機)">機体A (1号機)</option>
                         <option value="機体B (2号機)">機体B (2号機)</option>
@@ -74,7 +74,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold mb-1 text-gray-600">点検実施者</label>
-                    <input type="text" id="inspectorName" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
+                    <input type="text" id="inspectorName" oninput="syncInspectorToPilot()" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
                 </div>
             </div>
 
@@ -83,6 +83,11 @@
                 <h2 class="text-lg font-bold text-blue-600 border-b border-blue-200 pb-2 flex items-center gap-2">
                     🛫 飛行飛行日誌
                 </h2>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">操縦者名（別名義にする場合は書き換え可）</label>
+                    <input type="text" id="pilotName" oninput="updateCalculatedDisplays()" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2.5 text-sm bg-white font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
 
                 <div>
                     <label class="block text-xs font-semibold mb-1 text-gray-600">飛行目的／ルート</label>
@@ -142,9 +147,13 @@
                     <span class="text-gray-400">⏱️ 今回の飛行時間:</span>
                     <span id="currentFlightTimeDisplay" class="text-lg font-bold text-green-400">0 分</span>
                 </div>
-                <div class="flex justify-between items-center text-sm pt-1">
-                    <span class="text-gray-400">📈 過去からの累積飛行時間:</span>
-                    <span id="totalFlightTimeDisplay" class="text-lg font-bold text-blue-400">0 分</span>
+                <div class="flex justify-between items-center text-sm border-b border-gray-800 pb-1.5">
+                    <span class="text-gray-400">🛸 選択中の機体の累積時間:</span>
+                    <span id="droneTotalDisplay" class="text-sm font-bold text-amber-400">選択してください</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">👤 担当操縦者の累積時間:</span>
+                    <span id="pilotTotalDisplay" class="text-sm font-bold text-blue-400">入力してください</span>
                 </div>
             </div>
 
@@ -165,11 +174,17 @@
         const maps = { takeoff: null, landing: null };
         const markers = { takeoff: null, landing: null };
 
-        // ページ読み込み時の処理
         window.onload = function() {
             setCurrentDateTime('inspectionDateTime');
-            updateTotalFlightTimeDisplay(); // 累積時間の表示を更新
+            updateCalculatedDisplays();
         };
+
+        // ✨【新ロジック】点検者を入れたら操縦者にも自動コピーする
+        function syncInspectorToPilot() {
+            const inspector = document.getElementById('inspectorName').value;
+            document.getElementById('pilotName').value = inspector;
+            updateCalculatedDisplays();
+        }
 
         function setCurrentDateTime(elementId) {
             const now = new Date();
@@ -181,10 +196,9 @@
         function setCurrentTime(elementId) {
             const now = new Date();
             document.getElementById(elementId).value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            calculateFlightTime(); // 時刻が入ったら自動計算
+            calculateFlightTime();
         }
 
-        // ✨ 【追加機能】今回の飛行時間を計算する関数
         function calculateFlightTime() {
             const takeoff = document.getElementById('takeoffTime').value;
             const landing = document.getElementById('landingTime').value;
@@ -195,77 +209,91 @@
                 return 0;
             }
 
-            // 時刻を分に変換して差を計算
             const [tHour, tMin] = takeoff.split(':').map(Number);
             const [lHour, lMin] = landing.split(':').map(Number);
-            
             let diffMinutes = (lHour * 60 + lMin) - (tHour * 60 + tMin);
-            
-            // 日をまたいだ飛行の場合の簡易補正
             if (diffMinutes < 0) diffMinutes += 24 * 60;
 
             display.innerText = `${diffMinutes} 分`;
             return diffMinutes;
         }
 
-        // ✨ 【追加機能】端末にデータを一時保存する関数 (Local環境)
+        // 保存処理
         function saveData() {
             const flightTime = calculateFlightTime();
+            const droneId = document.getElementById('droneId').value;
+            const pilot = document.getElementById('pilotName').value;
             
-            // 入力データのオブジェクト化
             const logEntry = {
                 inspectionDate: document.getElementById('inspectionDateTime').value,
-                droneId: document.getElementById('droneId').value,
+                droneId: droneId,
                 inspector: document.getElementById('inspectorName').value,
+                pilotName: pilot,
                 purpose: document.getElementById('flightPurpose').value,
                 takeoffTime: document.getElementById('takeoffTime').value,
                 landingTime: document.getElementById('landingTime').value,
                 flightMinutes: flightTime
             };
 
-            // 必須チェック（機体選択と点検者）
-            if (!logEntry.droneId || !logEntry.inspector) {
-                alert("「機体番号」と「点検実施者」を入力してください。");
+            if (!logEntry.droneId || !logEntry.pilotName) {
+                alert("「機体番号」と「操縦者名」を入力してください。");
                 return;
             }
 
-            // 過去のデータをスマホメモリから読み込む
             let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
             savedLogs.push(logEntry);
-
-            // スマホメモリに上書き保存
             localStorage.setItem('droneLogs', JSON.stringify(savedLogs));
 
-            alert("端末への保存に成功しました！下の『累積飛行時間』が増えたことを確認してください。");
+            alert(`データを端末に保存しました！\n・機体: ${droneId}\n・操縦者: ${pilot}\nそれぞれの累積時間に加算されます。`);
             
-            // 画面をリフレッシュ
-            updateTotalFlightTimeDisplay();
+            // 入力時間だけクリアして統計を更新
             document.getElementById('takeoffTime').value = "";
             document.getElementById('landingTime').value = "";
             document.getElementById('currentFlightTimeDisplay').innerText = "0 分";
+            updateCalculatedDisplays();
         }
 
-        // ✨ 累積飛行時間を計算して画面に映す関数
-        function updateTotalFlightTimeDisplay() {
+        // ✨【新ロジック】「選択した機体別」「入力した操縦者別」に累積を切り替えて表示する
+        function updateCalculatedDisplays() {
             const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
-            const totalMinutes = savedLogs.reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
-            document.getElementById('totalFlightTimeDisplay').innerText = `${totalMinutes} 分`;
+            
+            const currentDrone = document.getElementById('droneId').value;
+            const currentPilot = document.getElementById('pilotName').value.trim();
+
+            // 1. 機体別の累積
+            if (currentDrone) {
+                const droneMinutes = savedLogs
+                    .filter(log => log.droneId === currentDrone)
+                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
+                document.getElementById('droneTotalDisplay').innerText = `${currentDrone}: ${droneMinutes} 分`;
+            } else {
+                document.getElementById('droneTotalDisplay').innerText = "機体を選択してください";
+            }
+
+            // 2. 操縦者別の累積
+            if (currentPilot) {
+                const pilotMinutes = savedLogs
+                    .filter(log => log.pilotName && log.pilotName.trim() === currentPilot)
+                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
+                document.getElementById('pilotTotalDisplay').innerText = `${currentPilot}様: ${pilotMinutes} 分`;
+            } else {
+                document.getElementById('pilotTotalDisplay').innerText = "操縦者名を入力してください";
+            }
         }
 
-        // テストデータのリセット
         function resetAppStorage() {
-            if (confirm("これまでのテスト用保存データをすべて削除しますか？")) {
+            if (confirm("これまでのすべての累積・テスト用保存データをリセットしますか？")) {
                 localStorage.removeItem('droneLogs');
-                updateTotalFlightTimeDisplay();
+                updateCalculatedDisplays();
                 alert("リセットしました。");
             }
         }
 
-        // GPS・地図初期化処理（前回と同様）
+        // 地図系
         function initMapWithGPS(type) {
             const inputField = document.getElementById(`${type}Location`);
             const mapContainer = document.getElementById(`${type}Map`);
-            if (!navigator.geolocation) { alert("GPS非対応端末です。"); return; }
+            if (!navigator.geolocation) { alert("GPS非対応"); return; }
             inputField.value = "GPS位置情報を取得中...";
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -284,10 +312,9 @@
                     });
                     setTimeout(() => { maps[type].invalidateSize(); }, 200);
                 },
-                function(error) { alert("GPS取得失敗。GitHubから開いているか確認してください。"); inputField.value = ""; }
+                function(error) { alert("GPSエラー"); inputField.value = ""; }
             );
         }
-
         function updateLocationText(type, lat, lng) {
             document.getElementById(`${type}Location`).value = `北緯:${lat.toFixed(6)}, 東経:${lng.toFixed(6)}`;
         }
