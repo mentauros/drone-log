@@ -18,7 +18,7 @@
     <header class="bg-blue-600 text-white shadow-md p-4 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">🛸 ドローン日誌 & 点検</h1>
-            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.3</span>
+            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.4</span>
         </div>
     </header>
 
@@ -44,9 +44,9 @@
                     <label class="block text-xs font-semibold mb-1 text-gray-600">機体番号／名称</label>
                     <select id="droneId" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
                         <option value="">-- 機体を選択してください --</option>
-                        <option value="機体A (登録番号: 1号機)">機体A (1号機)</option>
-                        <option value="機体B (登録番号: 2号機)">機体B (2号機)</option>
-                        <option value="機体C (登録番号: 3号機)">機体C (3号機)</option>
+                        <option value="機体A (1号機)">機体A (1号機)</option>
+                        <option value="機体B (2号機)">機体B (2号機)</option>
+                        <option value="機体C (3号機)">機体C (3号機)</option>
                     </select>
                 </div>
 
@@ -102,7 +102,7 @@
                     </div>
                     <div>
                         <div class="flex gap-2">
-                            <input type="time" id="takeoffTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
+                            <input type="time" id="takeoffTime" onchange="calculateFlightTime()" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
                             <button type="button" onclick="setCurrentTime('takeoffTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
                                 🕒 今
                             </button>
@@ -123,7 +123,7 @@
                     </div>
                     <div>
                         <div class="flex gap-2">
-                            <input type="time" id="landingTime" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
+                            <input type="time" id="landingTime" onchange="calculateFlightTime()" class="flex-1 border rounded-lg p-2 text-sm bg-white outline-none">
                             <button type="button" onclick="setCurrentTime('landingTime')" class="bg-gray-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-gray-700 active:scale-95 transition">
                                 🕒 今
                             </button>
@@ -137,9 +137,26 @@
                 </div>
             </div>
 
-            <button type="button" onclick="alert('日常点検と飛行日誌の合体成功です！次のステップで、このデータをスマホに一時保存したり、スプレッドシートに送信する仕組みを作ります！')" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-[0.98] transition mt-4">
-                点検と飛行日誌を保存する（未実装）
+            <div class="bg-gray-900 text-white rounded-xl p-4 shadow-inner space-y-2">
+                <div class="flex justify-between items-center text-sm border-b border-gray-700 pb-2">
+                    <span class="text-gray-400">⏱️ 今回の飛行時間:</span>
+                    <span id="currentFlightTimeDisplay" class="text-lg font-bold text-green-400">0 分</span>
+                </div>
+                <div class="flex justify-between items-center text-sm pt-1">
+                    <span class="text-gray-400">📈 過去からの累積飛行時間:</span>
+                    <span id="totalFlightTimeDisplay" class="text-lg font-bold text-blue-400">0 分</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="saveData()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-[0.98] transition mt-4">
+                点検と飛行日誌を端末に保存する
             </button>
+            
+            <div class="text-center">
+                <button type="button" onclick="resetAppStorage()" class="text-xs text-red-500 underline hover:text-red-700">
+                    ※テストデータをリセットする
+                </button>
+            </div>
 
         </form>
     </main>
@@ -148,72 +165,126 @@
         const maps = { takeoff: null, landing: null };
         const markers = { takeoff: null, landing: null };
 
-        // ページ読み込み時に今日の日付・時間を初期セット
+        // ページ読み込み時の処理
         window.onload = function() {
             setCurrentDateTime('inspectionDateTime');
+            updateTotalFlightTimeDisplay(); // 累積時間の表示を更新
         };
 
-        // 日時(年月日時分)をセットする関数
         function setCurrentDateTime(elementId) {
             const now = new Date();
-            // タイムゾーンを日本時間に合わせる
             const offset = now.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
             document.getElementById(elementId).value = localISOTime;
         }
 
-        // 時刻(時分)をセットする関数
         function setCurrentTime(elementId) {
             const now = new Date();
             document.getElementById(elementId).value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            calculateFlightTime(); // 時刻が入ったら自動計算
         }
 
-        // GPSから現在地を取得して、地図を初期化・表示する関数
-        function initMapWithGPS(type) {
-            const inputField = document.getElementById(`${type}Location`);
-            const mapContainer = document.getElementById(`${type}Map`);
+        // ✨ 【追加機能】今回の飛行時間を計算する関数
+        function calculateFlightTime() {
+            const takeoff = document.getElementById('takeoffTime').value;
+            const landing = document.getElementById('landingTime').value;
+            const display = document.getElementById('currentFlightTimeDisplay');
+
+            if (!takeoff || !landing) {
+                display.innerText = "0 分";
+                return 0;
+            }
+
+            // 時刻を分に変換して差を計算
+            const [tHour, tMin] = takeoff.split(':').map(Number);
+            const [lHour, lMin] = landing.split(':').map(Number);
             
-            if (!navigator.geolocation) {
-                alert("お使いの端末はGPSに対応していません。");
+            let diffMinutes = (lHour * 60 + lMin) - (tHour * 60 + tMin);
+            
+            // 日をまたいだ飛行の場合の簡易補正
+            if (diffMinutes < 0) diffMinutes += 24 * 60;
+
+            display.innerText = `${diffMinutes} 分`;
+            return diffMinutes;
+        }
+
+        // ✨ 【追加機能】端末にデータを一時保存する関数 (Local環境)
+        function saveData() {
+            const flightTime = calculateFlightTime();
+            
+            // 入力データのオブジェクト化
+            const logEntry = {
+                inspectionDate: document.getElementById('inspectionDateTime').value,
+                droneId: document.getElementById('droneId').value,
+                inspector: document.getElementById('inspectorName').value,
+                purpose: document.getElementById('flightPurpose').value,
+                takeoffTime: document.getElementById('takeoffTime').value,
+                landingTime: document.getElementById('landingTime').value,
+                flightMinutes: flightTime
+            };
+
+            // 必須チェック（機体選択と点検者）
+            if (!logEntry.droneId || !logEntry.inspector) {
+                alert("「機体番号」と「点検実施者」を入力してください。");
                 return;
             }
 
-            inputField.value = "GPS位置情報を取得中...";
+            // 過去のデータをスマホメモリから読み込む
+            let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            savedLogs.push(logEntry);
 
+            // スマホメモリに上書き保存
+            localStorage.setItem('droneLogs', JSON.stringify(savedLogs));
+
+            alert("端末への保存に成功しました！下の『累積飛行時間』が増えたことを確認してください。");
+            
+            // 画面をリフレッシュ
+            updateTotalFlightTimeDisplay();
+            document.getElementById('takeoffTime').value = "";
+            document.getElementById('landingTime').value = "";
+            document.getElementById('currentFlightTimeDisplay').innerText = "0 分";
+        }
+
+        // ✨ 累積飛行時間を計算して画面に映す関数
+        function updateTotalFlightTimeDisplay() {
+            const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            const totalMinutes = savedLogs.reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
+            document.getElementById('totalFlightTimeDisplay').innerText = `${totalMinutes} 分`;
+        }
+
+        // テストデータのリセット
+        function resetAppStorage() {
+            if (confirm("これまでのテスト用保存データをすべて削除しますか？")) {
+                localStorage.removeItem('droneLogs');
+                updateTotalFlightTimeDisplay();
+                alert("リセットしました。");
+            }
+        }
+
+        // GPS・地図初期化処理（前回と同様）
+        function initMapWithGPS(type) {
+            const inputField = document.getElementById(`${type}Location`);
+            const mapContainer = document.getElementById(`${type}Map`);
+            if (!navigator.geolocation) { alert("GPS非対応端末です。"); return; }
+            inputField.value = "GPS位置情報を取得中...";
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    
+                    const lat = position.coords.latitude; const lng = position.coords.longitude;
                     updateLocationText(type, lat, lng);
                     mapContainer.style.display = "block";
-                    
                     if (maps[type]) {
-                        maps[type].setView([lat, lng], 17);
-                        markers[type].setLatLng([lat, lng]);
-                        maps[type].invalidateSize();
-                        return;
+                        maps[type].setView([lat, lng], 17); markers[type].setLatLng([lat, lng]);
+                        maps[type].invalidateSize(); return;
                     }
-
                     maps[type] = L.map(`${type}Map`).setView([lat, lng], 17);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(maps[type]);
-
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(maps[type]);
                     markers[type] = L.marker([lat, lng], { draggable: true }).addTo(maps[type]);
-
-                    // ピンがドラッグ（移動）されたら、数値を自動更新する
                     markers[type].on('dragend', function(e) {
-                        const changedPos = e.target.getLatLng();
-                        updateLocationText(type, changedPos.lat, changedPos.lng);
+                        const changedPos = e.target.getLatLng(); updateLocationText(type, changedPos.lat, changedPos.lng);
                     });
-
                     setTimeout(() => { maps[type].invalidateSize(); }, 200);
                 },
-                function(error) {
-                    alert("位置情報の取得に失敗しました。公開サーバー(GitHub)から開いているか確認してください。");
-                    inputField.value = "";
-                }
+                function(error) { alert("GPS取得失敗。GitHubから開いているか確認してください。"); inputField.value = ""; }
             );
         }
 
