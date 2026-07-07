@@ -16,16 +16,13 @@
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background: white; color: black; font-size: 12px; min-height: auto; padding-bottom: 0; }
-            /* 印刷時はアプリの入力フォームやヘッダーをすべて非表示にする */
             header, main, #combinedLogForm { display: none !important; }
-            /* 印刷用エリアだけを表示 */
             #printArea { display: block !important; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
             th, td { border: 1px solid #000 !important; padding: 6px 8px; text-align: left; font-size: 11px; }
             th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
-        /* 通常画面では印刷用エリアは非表示 */
         #printArea { display: none; }
     </style>
 </head>
@@ -34,7 +31,7 @@
     <header class="bg-blue-600 text-white shadow-md p-4 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">🛸 ドローン日誌 & 点検</h1>
-            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.7</span>
+            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.8</span>
         </div>
     </header>
 
@@ -67,7 +64,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold mb-2 text-gray-600">点検項目（問題なければチェック）</label>
+                    <label class="block text-xs font-semibold mb-2 text-gray-600">点検項目</label>
                     <div class="bg-white border rounded-lg p-3 space-y-2.5">
                         <label class="flex items-center gap-3 text-sm cursor-pointer">
                             <input type="checkbox" id="checkPropeller" class="w-4 height-4 rounded text-amber-600 focus:ring-amber-500">
@@ -96,11 +93,11 @@
 
             <div class="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/10 space-y-4">
                 <h2 class="text-lg font-bold text-blue-600 border-b border-blue-200 pb-2 flex items-center gap-2">
-                    🛫 飛行飛行日誌
+                    🛫 飛行日誌
                 </h2>
 
                 <div>
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">操縦者名（別名義にする場合は書き換え可）</label>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">操縦者名</label>
                     <input type="text" id="pilotName" oninput="updateCalculatedDisplays()" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2.5 text-sm bg-white font-medium outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
@@ -114,7 +111,7 @@
                     <h3 class="font-bold text-xs text-blue-700">🛫 離陸（テイクオフ）</h3>
                     <div>
                         <div class="flex gap-2 mb-2">
-                            <input type="text" id="takeoffLocation" placeholder="離陸場所（位置情報）" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
+                            <input type="text" id="takeoffLocation" placeholder="離陸場所" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
                             <button type="button" onclick="initMapWithGPS('takeoff')" class="bg-blue-500 text-white text-xs px-2.5 py-2 rounded-lg font-bold hover:bg-blue-600 active:scale-95 transition">
                                 📍 現在地
                             </button>
@@ -135,7 +132,7 @@
                     <h3 class="font-bold text-xs text-green-700">🛬 着陸（ランディング）</h3>
                     <div>
                         <div class="flex gap-2 mb-2">
-                            <input type="text" id="landingLocation" placeholder="着陸場所（位置情報）" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
+                            <input type="text" id="landingLocation" placeholder="着陸場所" class="flex-1 border rounded-lg p-2 text-xs bg-gray-50 outline-none" readonly>
                             <button type="button" onclick="initMapWithGPS('landing')" class="bg-green-500 text-white text-xs px-2.5 py-2 rounded-lg font-bold hover:bg-green-600 active:scale-95 transition">
                                 📍 現在地
                             </button>
@@ -236,10 +233,33 @@
                     A4横書きで印刷出力する
                 </button>
             </div>
+
+            <div class="border-2 border-teal-200 rounded-xl p-4 bg-teal-50/30 space-y-3">
+                <h2 class="text-md font-bold text-teal-700 border-b border-teal-200 pb-2 flex items-center gap-2">
+                    📊 端末に保存されているデータ一覧
+                </h2>
+                <p class="text-xs text-gray-500">現在スマホ（ブラウザ内）に蓄積されているデータです。</p>
+                
+                <div class="overflow-x-auto border rounded-lg bg-white">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-teal-600 text-white">
+                                <th class="p-2 border border-teal-700 min-w-[80px]">日時</th>
+                                <th class="p-2 border border-teal-700">機体名</th>
+                                <th class="p-2 border border-teal-700">操縦者</th>
+                                <th class="p-2 border border-teal-700 min-w-[50px]">時間</th>
+                                <th class="p-2 border border-teal-700">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
             
-            <div class="text-center">
+            <div class="text-center pt-2">
                 <button type="button" onclick="resetAppStorage()" class="text-xs text-red-500 underline hover:text-red-700">
-                    ※テストデータをリセットする
+                    ※全てのデータを一括リセットする
                 </button>
             </div>
 
@@ -251,17 +271,62 @@
     <script>
         const maps = { takeoff: null, landing: null };
         const markers = { takeoff: null, landing: null };
-
         const DEFAULT_PURPOSES = ['空撮', '測量', '点検', 'テスト飛行'];
 
         window.onload = function() {
             setCurrentDateTime('inspectionDateTime');
             updatePurposeDropdown();
             updateCalculatedDisplays();
-            togglePrintFilters(); // 印刷条件の初期化
+            togglePrintFilters(); 
+            renderDataTable(); // 一覧表の描画
         };
 
-        // 印刷フィルターの表示切り替えロジック
+        // ✨【新関数】保存データを読み込んで画面の一覧表（テーブル）に表示する
+        function renderDataTable() {
+            const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+
+            if (savedLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">保存されたデータはまだありません。</td></tr>`;
+                return;
+            }
+
+            // 新しいデータが上に来るように逆順でループ
+            for (let i = savedLogs.length - 1; i >= 0; i--) {
+                const log = savedLogs[i];
+                const dateStr = log.inspectionDate ? log.inspectionDate.replace('T', ' ') : '不明';
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b";
+                tr.innerHTML = `
+                    <td class="p-2 border">${dateStr}</td>
+                    <td class="p-2 border">${log.droneId || ''}</td>
+                    <td class="p-2 border">${log.pilotName || ''}</td>
+                    <td class="p-2 border font-bold text-blue-600">${log.flightMinutes || 0}分</td>
+                    <td class="p-2 border text-center">
+                        <button type="button" onclick="deleteLogItem(${i})" class="bg-red-100 text-red-600 text-[10px] px-1.5 py-1 rounded font-bold hover:bg-red-200">
+                            削除
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // ✨【新関数】指定した1件のデータを削除する機能
+        function deleteLogItem(index) {
+            if (confirm("この飛行・点検記録を削除してもよろしいですか？（累積時間からもマイナスされます）")) {
+                let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+                savedLogs.splice(index, 1); // 指定位置のデータを1件削除
+                localStorage.setItem('droneLogs', JSON.stringify(savedLogs));
+                
+                // 画面を再更新
+                renderDataTable();
+                updateCalculatedDisplays();
+            }
+        }
+
         function togglePrintFilters() {
             const printType = document.getElementById('printType').value;
             const axisGroup = document.getElementById('filterTargetUserGroup');
@@ -289,7 +354,6 @@
             }
         }
 
-        // ✨【新ロジック】帳票データを抽出・組み立てて印刷を実行する
         function generateAndPrint() {
             const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
             const printType = document.getElementById('printType').value;
@@ -297,7 +361,6 @@
             const targetMonth = document.getElementById('printMonth').value;
             const printArea = document.getElementById('printArea');
 
-            // データのフィルタリング
             let filtered = savedLogs.filter(log => {
                 if (!log.inspectionDate) return false;
                 const logDate = new Date(log.inspectionDate);
@@ -314,7 +377,6 @@
             let htmlHTML = "";
 
             if (printType === 'inspection') {
-                // 日常点検記録簿（機体別）
                 const targetDrone = document.getElementById('printDroneId').value;
                 filtered = filtered.filter(log => log.droneId === targetDrone);
                 
@@ -353,7 +415,6 @@
                 htmlHTML += `</tbody></table>`;
 
             } else {
-                // 飛行日誌（機体別 または 操縦者別）
                 const axis = document.getElementById('printAxis').value;
                 let subTarget = "";
                 if (axis === 'drone') {
@@ -403,7 +464,6 @@
                 htmlHTML += `</tbody></table>`;
             }
 
-            // 印刷用エリアに流し込んで、ブラウザの印刷を起動
             printArea.innerHTML = htmlHTML;
             window.print();
         }
@@ -458,123 +518,3 @@
             const display = document.getElementById('currentFlightTimeDisplay');
 
             if (!takeoff || !landing) {
-                display.innerText = "0 分";
-                return 0;
-            }
-
-            const [tHour, tMin] = takeoff.split(':').map(Number);
-            const [lHour, lMin] = landing.split(':').map(Number);
-            let diffMinutes = (lHour * 60 + lMin) - (tHour * 60 + tMin);
-            if (diffMinutes < 0) diffMinutes += 24 * 60;
-
-            display.innerText = `${diffMinutes} 分`;
-            return diffMinutes;
-        }
-
-        function saveData() {
-            const flightTime = calculateFlightTime();
-            const droneId = document.getElementById('droneId').value;
-            const pilot = document.getElementById('pilotName').value;
-            const purposeValue = document.getElementById('flightPurpose').value;
-            
-            const logEntry = {
-                inspectionDate: document.getElementById('inspectionDateTime').value,
-                droneId: droneId,
-                inspector: document.getElementById('inspectorName').value,
-                pilotName: pilot,
-                purpose: purposeValue,
-                takeoffTime: document.getElementById('takeoffTime').value,
-                landingTime: document.getElementById('landingTime').value,
-                flightMinutes: flightTime,
-                remarks: document.getElementById('remarks').value
-            };
-
-            if (!logEntry.droneId || !logEntry.pilotName) {
-                alert("「機体番号」と「操縦者名」を入力してください。");
-                return;
-            }
-
-            checkAndSaveNewPurpose(purposeValue);
-
-            let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
-            savedLogs.push(logEntry);
-            localStorage.setItem('droneLogs', JSON.stringify(savedLogs));
-
-            alert(`データを端末に保存しました！\n・機体: ${droneId}\n・操縦者: ${pilot}\nそれぞれの累積時間に加算されます。`);
-            
-            document.getElementById('takeoffTime').value = "";
-            document.getElementById('landingTime').value = "";
-            document.getElementById('flightPurpose').value = "";
-            document.getElementById('remarks').value = "";
-            document.getElementById('currentFlightTimeDisplay').innerText = "0 分";
-            
-            updatePurposeDropdown();
-            updateCalculatedDisplays();
-        }
-
-        function updateCalculatedDisplays() {
-            const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
-            const currentDrone = document.getElementById('droneId').value;
-            const currentPilot = document.getElementById('pilotName').value.trim();
-
-            if (currentDrone) {
-                const droneMinutes = savedLogs
-                    .filter(log => log.droneId === currentDrone)
-                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
-                document.getElementById('droneTotalDisplay').innerText = `${currentDrone}: ${droneMinutes} 分`;
-            } else {
-                document.getElementById('droneTotalDisplay').innerText = "機体を選択してください";
-            }
-
-            if (currentPilot) {
-                const pilotMinutes = savedLogs
-                    .filter(log => log.pilotName && log.pilotName.trim() === currentPilot)
-                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
-                document.getElementById('pilotTotalDisplay').innerText = `${currentPilot}様: ${pilotMinutes} 分`;
-            } else {
-                document.getElementById('pilotTotalDisplay').innerText = "操縦者名を入力してください";
-            }
-        }
-
-        function resetAppStorage() {
-            if (confirm("これまでのすべての累積・テスト用保存データをリセットしますか？")) {
-                localStorage.removeItem('droneLogs');
-                localStorage.removeItem('customPurposes');
-                updatePurposeDropdown();
-                updateCalculatedDisplays();
-                alert("リセットしました。");
-            }
-        }
-
-        // 地図系
-        function initMapWithGPS(type) {
-            const inputField = document.getElementById(`${type}Location`);
-            const mapContainer = document.getElementById(`${type}Map`);
-            if (!navigator.geolocation) { alert("GPS非対応"); return; }
-            inputField.value = "GPS位置情報を取得中...";
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude; const lng = position.coords.longitude;
-                    updateLocationText(type, lat, lng);
-                    mapContainer.style.display = "block";
-                    if (maps[type]) {
-                        maps[type].setView([lat, lng], 17); markers[type].setLatLng([lat, lng]);
-                        maps[type].invalidateSize(); return;
-                    }
-                    maps[type] = L.map(`${type}Map`).setView([lat, lng], 17);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(maps[type]);
-                    markers[type] = L.marker([lat, lng], { draggable: true }).addTo(maps[type]);
-                    markers[type].on('dragend', function(e) {
-                        const changedPos = e.target.getLatLng(); updateLocationText(type, changedPos.lat, changedPos.lng);
-                    });
-                    setTimeout(() => { maps[type].invalidateSize(); }, 200);
-                },
-                function(error) { alert("GPSエラー"); inputField.value = ""; }
-            );
-        }
-        function updateLocationText(type, lat, lng) {
-            document.getElementById(`${type}Location`).value = `北緯:${lat.toFixed(6)}, 東経:${lng.toFixed(6)}`;
-        }
-    </script>
-</body>
-</html>
