@@ -518,3 +518,124 @@
             const display = document.getElementById('currentFlightTimeDisplay');
 
             if (!takeoff || !landing) {
+                display.innerText = "0 分";
+                return 0;
+            }
+
+            const [tHour, tMin] = takeoff.split(':').map(Number);
+            const [lHour, lMin] = landing.split(':').map(Number);
+            let diffMinutes = (lHour * 60 + lMin) - (tHour * 60 + tMin);
+            if (diffMinutes < 0) diffMinutes += 24 * 60;
+
+            display.innerText = `${diffMinutes} 分`;
+            return diffMinutes;
+        }
+
+        function saveData() {
+            const flightTime = calculateFlightTime();
+            const droneId = document.getElementById('droneId').value;
+            const pilot = document.getElementById('pilotName').value;
+            const purposeValue = document.getElementById('flightPurpose').value;
+            
+            const logEntry = {
+                inspectionDate: document.getElementById('inspectionDateTime').value,
+                droneId: droneId,
+                inspector: document.getElementById('inspectorName').value,
+                pilotName: pilot,
+                purpose: purposeValue,
+                takeoffTime: document.getElementById('takeoffTime').value,
+                landingTime: document.getElementById('landingTime').value,
+                flightMinutes: flightTime,
+                remarks: document.getElementById('remarks').value
+            };
+
+            if (!logEntry.droneId || !logEntry.pilotName) {
+                alert("「機体番号」と「操縦者名」を入力してください。");
+                return;
+            }
+
+            checkAndSaveNewPurpose(purposeValue);
+
+            let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            savedLogs.push(logEntry);
+            localStorage.setItem('droneLogs', JSON.stringify(savedLogs));
+
+            alert(`データを端末に保存しました！`);
+            
+            document.getElementById('takeoffTime').value = "";
+            document.getElementById('landingTime').value = "";
+            document.getElementById('flightPurpose').value = "";
+            document.getElementById('remarks').value = "";
+            document.getElementById('currentFlightTimeDisplay').innerText = "0 分";
+            
+            updatePurposeDropdown();
+            updateCalculatedDisplays();
+            renderDataTable(); // 一覧表をリフレッシュ
+        }
+
+        function updateCalculatedDisplays() {
+            const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            const currentDrone = document.getElementById('droneId').value;
+            const currentPilot = document.getElementById('pilotName').value.trim();
+
+            if (currentDrone) {
+                const droneMinutes = savedLogs
+                    .filter(log => log.droneId === currentDrone)
+                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
+                document.getElementById('droneTotalDisplay').innerText = `${currentDrone}: ${droneMinutes} 分`;
+            } else {
+                document.getElementById('droneTotalDisplay').innerText = "機体を選択してください";
+            }
+
+            if (currentPilot) {
+                const pilotMinutes = savedLogs
+                    .filter(log => log.pilotName && log.pilotName.trim() === currentPilot)
+                    .reduce((sum, log) => sum + (log.flightMinutes || 0), 0);
+                document.getElementById('pilotTotalDisplay').innerText = `${currentPilot}様: ${pilotMinutes} 分`;
+            } else {
+                document.getElementById('pilotTotalDisplay').innerText = "操縦者名を入力してください";
+            }
+        }
+
+        function resetAppStorage() {
+            if (confirm("これまでのすべての累積・テスト用保存データをリセットしますか？")) {
+                localStorage.removeItem('droneLogs');
+                localStorage.removeItem('customPurposes');
+                updatePurposeDropdown();
+                updateCalculatedDisplays();
+                renderDataTable(); // 一覧表をリフレッシュ
+                alert("リセットしました。");
+            }
+        }
+
+        function initMapWithGPS(type) {
+            const inputField = document.getElementById(`${type}Location`);
+            const mapContainer = document.getElementById(`${type}Map`);
+            if (!navigator.geolocation) { alert("GPS非対応"); return; }
+            inputField.value = "GPS位置情報を取得中...";
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude; const lng = position.coords.longitude;
+                    updateLocationText(type, lat, lng);
+                    mapContainer.style.display = "block";
+                    if (maps[type]) {
+                        maps[type].setView([lat, lng], 17); markers[type].setLatLng([lat, lng]);
+                        maps[type].invalidateSize(); return;
+                    }
+                    maps[type] = L.map(`${type}Map`).setView([lat, lng], 17);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(maps[type]);
+                    markers[type] = L.marker([lat, lng], { draggable: true }).addTo(maps[type]);
+                    markers[type].on('dragend', function(e) {
+                        const changedPos = e.target.getLatLng(); updateLocationText(type, changedPos.lat, changedPos.lng);
+                    });
+                    setTimeout(() => { maps[type].invalidateSize(); }, 200);
+                },
+                function(error) { alert("GPSエラー"); inputField.value = ""; }
+            );
+        }
+        function updateLocationText(type, lat, lng) {
+            document.getElementById(`${type}Location`).value = `北緯:${lat.toFixed(6)}, 東経:${lng.toFixed(6)}`;
+        }
+    </script>
+</body>
+</html>
