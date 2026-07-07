@@ -11,6 +11,22 @@
     <style>
         body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; }
         .map-container { height: 200px; width: 100%; display: none; }
+        
+        /* 🖨️ 印刷用CSS設定（A4横書き） */
+        @media print {
+            @page { size: landscape; margin: 10mm; }
+            body { background: white; color: black; font-size: 12px; min-height: auto; padding-bottom: 0; }
+            /* 印刷時はアプリの入力フォームやヘッダーをすべて非表示にする */
+            header, main, #combinedLogForm { display: none !important; }
+            /* 印刷用エリアだけを表示 */
+            #printArea { display: block !important; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { border: 1px solid #000 !important; padding: 6px 8px; text-align: left; font-size: 11px; }
+            th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+        /* 通常画面では印刷用エリアは非表示 */
+        #printArea { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen pb-12">
@@ -18,7 +34,7 @@
     <header class="bg-blue-600 text-white shadow-md p-4 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">🛸 ドローン日誌 & 点検</h1>
-            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.6</span>
+            <span class="text-xs bg-blue-700 px-2 py-1 rounded">Ver 0.7</span>
         </div>
     </header>
 
@@ -77,7 +93,6 @@
                     <input type="text" id="inspectorName" oninput="syncInspectorToPilot()" placeholder="例：飯吉 健司" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
                 </div>
             </div>
-
 
             <div class="border-2 border-blue-200 rounded-xl p-4 bg-blue-50/10 space-y-4">
                 <h2 class="text-lg font-bold text-blue-600 border-b border-blue-200 pb-2 flex items-center gap-2">
@@ -161,6 +176,66 @@
             <button type="button" onclick="saveData()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold shadow-md hover:bg-blue-700 active:scale-[0.98] transition mt-4">
                 点検と飛行日誌を端末に保存する
             </button>
+
+            <div class="border-2 border-purple-200 rounded-xl p-4 bg-purple-50/30 space-y-4 pt-4">
+                <h2 class="text-md font-bold text-purple-700 border-b border-purple-200 pb-2 flex items-center gap-2">
+                    🖨️ 帳票印刷出力（A4横）
+                </h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">1. 出力する帳票タイプ</label>
+                    <select id="printType" onchange="togglePrintFilters()" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                        <option value="inspection">日常点検記録簿 (機体毎)</option>
+                        <option value="flightLog">飛行日誌 (機体毎 / 操縦者毎)</option>
+                    </select>
+                </div>
+
+                <div id="filterTargetUserGroup" class="hidden">
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">2. 出力軸の選択</label>
+                    <select id="printAxis" onchange="togglePrintFilters()" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                        <option value="drone">機体毎に出力</option>
+                        <option value="pilot">操縦者毎に出力</option>
+                    </select>
+                </div>
+
+                <div id="printTargetSelectArea">
+                    <label id="printTargetLabel" class="block text-xs font-semibold mb-1 text-gray-600">対象の指定</label>
+                    <div id="printDroneSelectContainer">
+                        <select id="printDroneId" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                            <option value="機体A (1号機)">機体A (1号機)</option>
+                            <option value="機体B (2号機)">機体B (2号機)</option>
+                            <option value="機体C (3号機)">機体C (3号機)</option>
+                        </select>
+                    </div>
+                    <div id="printPilotInputContainer" class="hidden">
+                        <input type="text" id="printPilotName" placeholder="操縦者名を入力 (例: 飯吉 健司)" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-gray-600">対象年</label>
+                        <select id="printYear" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                            <option value="2026">2026年</option>
+                            <option value="2027">2027年</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-gray-600">対象月指定</label>
+                        <select id="printMonth" class="w-full border rounded-lg p-2 text-sm bg-white outline-none">
+                            <option value="all">年単位出力（全月）</option>
+                            <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+                            <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+                            <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+                            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" onclick="generateAndPrint()" class="w-full bg-purple-600 text-white p-2.5 rounded-lg font-bold text-sm shadow-md hover:bg-purple-700 active:scale-95 transition">
+                    A4横書きで印刷出力する
+                </button>
+            </div>
             
             <div class="text-center">
                 <button type="button" onclick="resetAppStorage()" class="text-xs text-red-500 underline hover:text-red-700">
@@ -171,31 +246,173 @@
         </form>
     </main>
 
+    <div id="printArea"></div>
+
     <script>
         const maps = { takeoff: null, landing: null };
         const markers = { takeoff: null, landing: null };
 
-        // ✨ 初期化用の基本4項目
         const DEFAULT_PURPOSES = ['空撮', '測量', '点検', 'テスト飛行'];
 
         window.onload = function() {
             setCurrentDateTime('inspectionDateTime');
-            updatePurposeDropdown(); // ✨ ドロップダウンの準備
+            updatePurposeDropdown();
             updateCalculatedDisplays();
+            togglePrintFilters(); // 印刷条件の初期化
         };
 
-        // ✨【新ロジック】ドロップダウンの選択肢を動的に生成・更新する関数
+        // 印刷フィルターの表示切り替えロジック
+        function togglePrintFilters() {
+            const printType = document.getElementById('printType').value;
+            const axisGroup = document.getElementById('filterTargetUserGroup');
+            const droneContainer = document.getElementById('printDroneSelectContainer');
+            const pilotContainer = document.getElementById('printPilotInputContainer');
+            const targetLabel = document.getElementById('printTargetLabel');
+
+            if (printType === 'inspection') {
+                axisGroup.classList.add('hidden');
+                droneContainer.classList.remove('hidden');
+                pilotContainer.classList.add('hidden');
+                targetLabel.innerText = "2. 対象の機体を選択";
+            } else {
+                axisGroup.classList.remove('hidden');
+                const axis = document.getElementById('printAxis').value;
+                if (axis === 'drone') {
+                    droneContainer.classList.remove('hidden');
+                    pilotContainer.classList.add('hidden');
+                    targetLabel.innerText = "3. 対象の機体を選択";
+                } else {
+                    droneContainer.classList.add('hidden');
+                    pilotContainer.classList.remove('hidden');
+                    targetLabel.innerText = "3. 対象の操縦者名を入力";
+                }
+            }
+        }
+
+        // ✨【新ロジック】帳票データを抽出・組み立てて印刷を実行する
+        function generateAndPrint() {
+            const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
+            const printType = document.getElementById('printType').value;
+            const targetYear = document.getElementById('printYear').value;
+            const targetMonth = document.getElementById('printMonth').value;
+            const printArea = document.getElementById('printArea');
+
+            // データのフィルタリング
+            let filtered = savedLogs.filter(log => {
+                if (!log.inspectionDate) return false;
+                const logDate = new Date(log.inspectionDate);
+                const yearMatch = logDate.getFullYear().toString() === targetYear;
+                let monthMatch = true;
+                if (targetMonth !== 'all') {
+                    const formattedMonth = String(logDate.getMonth() + 1).padStart(2, '0');
+                    monthMatch = formattedMonth === targetMonth;
+                }
+                return yearMatch && monthMatch;
+            });
+
+            let title = "";
+            let htmlHTML = "";
+
+            if (printType === 'inspection') {
+                // 日常点検記録簿（機体別）
+                const targetDrone = document.getElementById('printDroneId').value;
+                filtered = filtered.filter(log => log.droneId === targetDrone);
+                
+                title = `日常点検記録簿 (${targetDrone}) - ${targetYear}年${targetMonth === 'all' ? '通年' : targetMonth + '月'}`;
+                
+                htmlHTML = `<h2>${title}</h2>`;
+                htmlHTML += `<table>
+                    <thead>
+                        <tr>
+                            <th>点検日時</th>
+                            <th>点検実施者</th>
+                            <th>プロペラ</th>
+                            <th>バッテリー</th>
+                            <th>通信電波</th>
+                            <th>GPS状態</th>
+                            <th>対応飛行日誌（操縦者）</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                if(filtered.length === 0) {
+                    htmlHTML += `<tr><td colspan="7" style="text-align:center;">該当日時の点検記録データがありません。</td></tr>`;
+                } else {
+                    filtered.forEach(log => {
+                        htmlHTML += `<tr>
+                            <td>${log.inspectionDate ? log.inspectionDate.replace('T', ' ') : ''}</td>
+                            <td>${log.inspector || '未入力'}</td>
+                            <td>OK</td>
+                            <td>OK</td>
+                            <td>OK</td>
+                            <td>OK</td>
+                            <td>${log.pilotName || 'なし'}</td>
+                        </tr>`;
+                    });
+                }
+                htmlHTML += `</tbody></table>`;
+
+            } else {
+                // 飛行日誌（機体別 または 操縦者別）
+                const axis = document.getElementById('printAxis').value;
+                let subTarget = "";
+                if (axis === 'drone') {
+                    subTarget = document.getElementById('printDroneId').value;
+                    filtered = filtered.filter(log => log.droneId === subTarget);
+                    title = `無人航空機 飛行飛行日誌 (${subTarget}) - ${targetYear}年${targetMonth === 'all' ? '通年' : targetMonth + '月'}`;
+                } else {
+                    subTarget = document.getElementById('printPilotName').value.trim();
+                    if(!subTarget) { alert("操縦者名を入力してください。"); return; }
+                    filtered = filtered.filter(log => log.pilotName && log.pilotName.trim() === subTarget);
+                    title = `無人航空機 飛行飛行日誌 (操縦者: ${subTarget}様) - ${targetYear}年${targetMonth === 'all' ? '通年' : targetMonth + '月'}`;
+                }
+
+                htmlHTML = `<h2>${title}</h2>`;
+                htmlHTML += `<table>
+                    <thead>
+                        <tr>
+                            <th>飛行年月日</th>
+                            <th>操縦者名</th>
+                            <th>機体名</th>
+                            <th>飛行目的／ルート</th>
+                            <th>離陸時刻</th>
+                            <th>着陸時刻</th>
+                            <th>飛行時間</th>
+                            <th>備考・特記事項</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                if(filtered.length === 0) {
+                    htmlHTML += `<tr><td colspan="8" style="text-align:center;">該当日時の飛行日誌データがありません。</td></tr>`;
+                } else {
+                    filtered.forEach(log => {
+                        const fDate = log.inspectionDate ? log.inspectionDate.split('T')[0] : '';
+                        htmlHTML += `<tr>
+                            <td>${fDate}</td>
+                            <td>${log.pilotName || ''}</td>
+                            <td>${log.droneId || ''}</td>
+                            <td>${log.purpose || '未入力'}</td>
+                            <td>${log.takeoffTime || '--:--'}</td>
+                            <td>${log.landingTime || '--:--'}</td>
+                            <td>${log.flightMinutes || 0} 分</td>
+                            <td>${log.remarks || ''}</td>
+                        </tr>`;
+                    });
+                }
+                htmlHTML += `</tbody></table>`;
+            }
+
+            // 印刷用エリアに流し込んで、ブラウザの印刷を起動
+            printArea.innerHTML = htmlHTML;
+            window.print();
+        }
+
         function updatePurposeDropdown() {
             const datalist = document.getElementById('purposeOptions');
             if (!datalist) return;
-
-            // 過去にカスタム入力して保存されたリストを呼び出す
             const savedCustomPurposes = JSON.parse(localStorage.getItem('customPurposes')) || [];
-            
-            // 基本項目とカスタム項目を合体させて、重複を取り除く
             const allPurposes = Array.from(new Set([...DEFAULT_PURPOSES, ...savedCustomPurposes]));
-
-            // いったんリセットして綺麗に作り直す
             datalist.innerHTML = '';
             allPurposes.forEach(purpose => {
                 const option = document.createElement('option');
@@ -204,12 +421,9 @@
             });
         }
 
-        // ✨【新ロジック】新しい飛行目的があれば保存する関数
         function checkAndSaveNewPurpose(purposeValue) {
             if (!purposeValue || purposeValue.trim() === '') return;
             const trimmed = purposeValue.trim();
-
-            // 基本の4項目に含まれておらず、かつ、まだ保存されていない新規テキストの場合のみ
             if (!DEFAULT_PURPOSES.includes(trimmed)) {
                 let savedCustomPurposes = JSON.parse(localStorage.getItem('customPurposes')) || [];
                 if (!savedCustomPurposes.includes(trimmed)) {
@@ -219,7 +433,6 @@
             }
         }
 
-        // ✨【新ロジック】点検者を入れたら操縦者にも自動コピーする
         function syncInspectorToPilot() {
             const inspector = document.getElementById('inspectorName').value;
             document.getElementById('pilotName').value = inspector;
@@ -258,7 +471,6 @@
             return diffMinutes;
         }
 
-        // 保存処理
         function saveData() {
             const flightTime = calculateFlightTime();
             const droneId = document.getElementById('droneId').value;
@@ -273,7 +485,8 @@
                 purpose: purposeValue,
                 takeoffTime: document.getElementById('takeoffTime').value,
                 landingTime: document.getElementById('landingTime').value,
-                flightMinutes: flightTime
+                flightMinutes: flightTime,
+                remarks: document.getElementById('remarks').value
             };
 
             if (!logEntry.droneId || !logEntry.pilotName) {
@@ -281,7 +494,6 @@
                 return;
             }
 
-            // ✨ 新規の飛行目的があれば記憶する
             checkAndSaveNewPurpose(purposeValue);
 
             let savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
@@ -290,24 +502,21 @@
 
             alert(`データを端末に保存しました！\n・機体: ${droneId}\n・操縦者: ${pilot}\nそれぞれの累積時間に加算されます。`);
             
-            // 入力時間と目的だけクリアして統計を更新
             document.getElementById('takeoffTime').value = "";
             document.getElementById('landingTime').value = "";
-            document.getElementById('flightPurpose').value = ""; // クリア
+            document.getElementById('flightPurpose').value = "";
+            document.getElementById('remarks').value = "";
             document.getElementById('currentFlightTimeDisplay').innerText = "0 分";
             
-            updatePurposeDropdown(); // ✨ ドロップダウンの一覧を再更新
+            updatePurposeDropdown();
             updateCalculatedDisplays();
         }
 
-        // ✨【新ロジック】「選択した機体別」「入力した操縦者別」に累積を切り替えて表示する
         function updateCalculatedDisplays() {
             const savedLogs = JSON.parse(localStorage.getItem('droneLogs')) || [];
-            
             const currentDrone = document.getElementById('droneId').value;
             const currentPilot = document.getElementById('pilotName').value.trim();
 
-            // 1. 機体別の累積
             if (currentDrone) {
                 const droneMinutes = savedLogs
                     .filter(log => log.droneId === currentDrone)
@@ -317,7 +526,6 @@
                 document.getElementById('droneTotalDisplay').innerText = "機体を選択してください";
             }
 
-            // 2. 操縦者別の累積
             if (currentPilot) {
                 const pilotMinutes = savedLogs
                     .filter(log => log.pilotName && log.pilotName.trim() === currentPilot)
@@ -329,9 +537,9 @@
         }
 
         function resetAppStorage() {
-            if (confirm("これまでのすべての累積・テスト用保存データをリセットしますか？（追加した飛行目的リストも消去されます）")) {
+            if (confirm("これまでのすべての累積・テスト用保存データをリセットしますか？")) {
                 localStorage.removeItem('droneLogs');
-                localStorage.removeItem('customPurposes'); // ✨ カスタム項目もリセット
+                localStorage.removeItem('customPurposes');
                 updatePurposeDropdown();
                 updateCalculatedDisplays();
                 alert("リセットしました。");
